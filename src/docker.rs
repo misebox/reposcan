@@ -17,13 +17,14 @@ pub struct DockerInfo {
 }
 
 pub async fn collect(repo: &Path, skip_runtime: bool) -> DockerInfo {
-    let mut info = DockerInfo::default();
-    info.has_dockerfile = repo.join("Dockerfile").exists();
-
-    info.compose_file = COMPOSE_CANDIDATES
-        .iter()
-        .find(|f| repo.join(f).exists())
-        .map(|s| s.to_string());
+    let mut info = DockerInfo {
+        has_dockerfile: repo.join("Dockerfile").exists(),
+        compose_file: COMPOSE_CANDIDATES
+            .iter()
+            .find(|f| repo.join(f).exists())
+            .map(|s| s.to_string()),
+        ..Default::default()
+    };
 
     if let Some(name) = &info.compose_file {
         if let Ok(text) = std::fs::read_to_string(repo.join(name)) {

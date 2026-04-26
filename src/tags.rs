@@ -100,8 +100,6 @@ const EXT_TAGS: &[(&str, &str)] = &[
     ("sass", "sass"),
     ("css", "css"),
     ("vim", "vim"),
-    ("ex", "elixir"),
-    ("nim", "nim"),
 ];
 
 // Basename → tag (path-independent).
@@ -411,12 +409,10 @@ fn build_context(repo: &Path) -> Context {
         })
         .build();
 
-    let mut count = 0usize;
-    for result in walker {
-        if count > MAX_WALK_FILES {
+    for (count, result) in walker.enumerate() {
+        if count >= MAX_WALK_FILES {
             break;
         }
-        count += 1;
         let Ok(entry) = result else { continue };
         if !entry.file_type().map(|t| t.is_file()).unwrap_or(false) {
             continue;

@@ -84,11 +84,13 @@ fn write_json<W: Write>(entries: &[RepoEntry], mask: Mask, w: &mut W) -> Result<
 }
 
 const FLAT_COLUMNS: &[(&str, Group)] = &[
+    // Identity
     ("path", Group::Always),
     ("name", Group::Always),
+    ("current_branch", Group::Always),
     ("github_repo", Group::Github),
-    ("github_description", Group::Github),
     ("is_private", Group::Github),
+    // Activity
     ("last_commit_hash", Group::Always),
     ("last_commit_date", Group::Always),
     ("last_commit_message", Group::Always),
@@ -98,26 +100,32 @@ const FLAT_COLUMNS: &[(&str, Group)] = &[
     ("uncommitted_deletions", Group::Always),
     ("unpushed_commits", Group::Always),
     ("unmerged_branches", Group::Always),
-    ("dir_size_bytes", Group::Always),
-    ("tech_tags", Group::Always),
-    ("has_readme", Group::Always),
-    ("scale", Group::Loc),
+    ("open_issues", Group::Github),
+    ("open_prs", Group::Github),
+    // Size
     ("loc", Group::Loc),
+    ("scale", Group::Loc),
+    ("dir_size_bytes", Group::Always),
+    // Infra
+    ("has_readme", Group::Always),
     ("has_dockerfile", Group::Docker),
     ("compose_file", Group::Docker),
     ("compose_ports", Group::Docker),
     ("compose_running", Group::Docker),
-    ("open_issues", Group::Github),
-    ("open_prs", Group::Github),
+    // Free text / wide
+    ("github_description", Group::Github),
+    ("tech_tags", Group::Always),
 ];
 
 fn full_row(e: &RepoEntry) -> Vec<String> {
     vec![
+        // Identity
         e.path.clone(),
         e.name.clone(),
+        opt_str(&e.current_branch),
         opt_str(&e.github_repo),
-        opt_str(&e.github_description),
         opt_bool(e.is_private),
+        // Activity
         e.last_commit
             .as_ref()
             .map(|c| c.hash.clone())
@@ -136,11 +144,14 @@ fn full_row(e: &RepoEntry) -> Vec<String> {
         opt_num(e.uncommitted.as_ref().map(|u| u.deletions as u64)),
         opt_num(e.unpushed_commits.map(|n| n as u64)),
         opt_num(e.unmerged_branches.map(|n| n as u64)),
-        opt_num(e.dir_size_bytes),
-        e.tech_tags.join("|"),
-        e.has_readme.to_string(),
-        e.scale.map(scale_str).unwrap_or("").to_string(),
+        opt_num(e.open_issues.map(|n| n as u64)),
+        opt_num(e.open_prs.map(|n| n as u64)),
+        // Size
         opt_num(e.loc),
+        e.scale.map(scale_str).unwrap_or("").to_string(),
+        opt_num(e.dir_size_bytes),
+        // Infra
+        e.has_readme.to_string(),
         e.has_dockerfile.to_string(),
         opt_str(&e.compose_file),
         e.compose_ports
@@ -149,8 +160,9 @@ fn full_row(e: &RepoEntry) -> Vec<String> {
             .collect::<Vec<_>>()
             .join("|"),
         e.compose_running.to_string(),
-        opt_num(e.open_issues.map(|n| n as u64)),
-        opt_num(e.open_prs.map(|n| n as u64)),
+        // Free text
+        opt_str(&e.github_description),
+        e.tech_tags.join("|"),
     ]
 }
 
@@ -212,24 +224,31 @@ fn escape_md_cell(s: String) -> String {
 }
 
 const ASCII_COLUMNS: &[(&str, Group)] = &[
+    // Identity
     ("PATH", Group::Always),
+    ("NAME", Group::Always),
+    ("BRANCH", Group::Always),
+    ("GH", Group::Github),
+    ("PRIV", Group::Github),
+    // Activity
     ("LAST COMMIT\nDATE", Group::Always),
     ("DIRTY", Group::Always),
     ("AHEAD", Group::Always),
     ("UNMERGED", Group::Always),
-    ("GH", Group::Github),
-    ("PRIV", Group::Github),
-    ("DESC", Group::Github),
     ("ISSUES", Group::Github),
     ("PRS", Group::Github),
+    // Size
     ("LOC", Group::Loc),
     ("SCALE", Group::Loc),
     ("SIZE", Group::Always),
+    // Infra
     ("README", Group::Always),
     ("DOCKERFILE", Group::Docker),
     ("COMPOSE", Group::Docker),
     ("PORTS", Group::Docker),
     ("RUNNING", Group::Docker),
+    // Free text / wide
+    ("DESC", Group::Github),
     ("TAGS", Group::Always),
 ];
 
@@ -284,24 +303,31 @@ fn ascii_row(e: &RepoEntry) -> Vec<String> {
     };
 
     vec![
+        // Identity
         e.path.clone(),
+        e.name.clone(),
+        e.current_branch.clone().unwrap_or_else(|| "-".into()),
+        gh,
+        priv_.into(),
+        // Activity
         date,
         dirty,
         ahead,
         unmerged,
-        gh,
-        priv_.into(),
-        desc,
         issues,
         prs,
+        // Size
         loc,
         scale,
         size,
+        // Infra
         readme.into(),
         dockerfile.into(),
         compose,
         ports,
         running.into(),
+        // Free text
+        desc,
         tags,
     ]
 }

@@ -26,7 +26,8 @@ for a status table and per-OS install hints.
 | `git`   | yes      | all repository scanning |
 | `gh`    | no       | GitHub description, is_private, open issues, open PRs |
 | `docker`| no       | compose runtime status (`docker compose ps`) |
-| `tokei` | no       | fast LOC counting (falls back to `git ls-files` + read) |
+
+LOC counting is built in (uses the `tokei` library directly).
 
 ## Usage
 

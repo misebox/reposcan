@@ -34,14 +34,6 @@ pub const TOOLS: &[Tool] = &[
         install_linux: &["see https://docs.docker.com/engine/install/"],
         url: "https://docs.docker.com/get-docker/",
     },
-    Tool {
-        name: "tokei",
-        required: false,
-        purpose: "fast LOC counting (wc fallback works without it)",
-        install_macos: &["brew install tokei"],
-        install_linux: &["cargo install tokei", "pacman -S tokei"],
-        url: "https://github.com/XAMPPRocky/tokei",
-    },
 ];
 
 pub fn is_available(cmd: &str) -> bool {

@@ -23,12 +23,14 @@ use crate::discover::DiscoverOptions;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt()
+    let _ = tracing_log::LogTracer::init();
+    let _ = tracing_subscriber::fmt()
         .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+            EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| EnvFilter::new("info,tokei=error")),
         )
         .with_writer(std::io::stderr)
-        .init();
+        .try_init();
 
     let mut args = Args::parse();
 

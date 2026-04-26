@@ -25,8 +25,9 @@ const PRUNE_DIRS: &[&str] = &[
     "out",
 ];
 
-const JS_SUBDIRS: &[&str] =
-    &["app", "api", "ui", "web", "client", "server", "packages", "apps"];
+const JS_SUBDIRS: &[&str] = &[
+    "app", "api", "ui", "web", "client", "server", "packages", "apps",
+];
 const RUST_SUBDIRS: &[&str] = &["api", "app", "server"];
 const PY_SUBDIRS: &[&str] = &["api", "engine", "app"];
 const GO_SUBDIRS: &[&str] = &["cmd", "api", "app", "server"];

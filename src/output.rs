@@ -61,12 +61,23 @@ fn write_json<W: Write>(entries: &[RepoEntry], mask: Mask, w: &mut W) -> Result<
         let mut v = serde_json::to_value(e)?;
         if let serde_json::Value::Object(map) = &mut v {
             if mask.no_github {
-                for k in ["github_repo", "github_description", "is_private", "open_issues", "open_prs"] {
+                for k in [
+                    "github_repo",
+                    "github_description",
+                    "is_private",
+                    "open_issues",
+                    "open_prs",
+                ] {
                     map.remove(k);
                 }
             }
             if mask.no_docker {
-                for k in ["has_dockerfile", "compose_file", "compose_ports", "compose_running"] {
+                for k in [
+                    "has_dockerfile",
+                    "compose_file",
+                    "compose_ports",
+                    "compose_running",
+                ] {
                     map.remove(k);
                 }
             }
@@ -204,11 +215,18 @@ fn write_markdown<W: Write>(entries: &[RepoEntry], mask: Mask, w: &mut W) -> Res
     writeln!(
         w,
         "| {} |",
-        headers.iter().map(|_| "---").collect::<Vec<_>>().join(" | ")
+        headers
+            .iter()
+            .map(|_| "---")
+            .collect::<Vec<_>>()
+            .join(" | ")
     )?;
     for e in entries {
         let row = full_row(e);
-        let cells: Vec<String> = pick(&row, &active).into_iter().map(escape_md_cell).collect();
+        let cells: Vec<String> = pick(&row, &active)
+            .into_iter()
+            .map(escape_md_cell)
+            .collect();
         writeln!(w, "| {} |", cells.join(" | "))?;
     }
     Ok(())

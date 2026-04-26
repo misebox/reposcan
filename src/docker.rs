@@ -100,8 +100,8 @@ fn parse_port_string(s: &str) -> Option<u16> {
     let parts: Vec<&str> = s.split(':').collect();
     let host_part = match parts.len() {
         1 => parts[0],
-        2 => parts[0],     // host:container
-        3 => parts[1],     // ip:host:container
+        2 => parts[0], // host:container
+        3 => parts[1], // ip:host:container
         _ => return None,
     };
     host_part.parse().ok()

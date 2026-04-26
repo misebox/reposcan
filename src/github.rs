@@ -28,7 +28,13 @@ struct NumberItem {
 pub async fn fetch(repo: &Path) -> GitHubMeta {
     let mut meta = GitHubMeta::default();
 
-    if let Some(out) = run(repo, "gh", &["repo", "view", "--json", "description,isPrivate"]).await {
+    if let Some(out) = run(
+        repo,
+        "gh",
+        &["repo", "view", "--json", "description,isPrivate"],
+    )
+    .await
+    {
         if out.ok() {
             match serde_json::from_str::<RepoView>(&out.stdout) {
                 Ok(v) => {
@@ -43,7 +49,10 @@ pub async fn fetch(repo: &Path) -> GitHubMeta {
     }
 
     let (issues, prs) = tokio::join!(
-        fetch_count(repo, &["issue", "list", "--state", "open", "--json", "number"]),
+        fetch_count(
+            repo,
+            &["issue", "list", "--state", "open", "--json", "number"]
+        ),
         fetch_count(repo, &["pr", "list", "--state", "open", "--json", "number"]),
     );
     meta.open_issues = issues;

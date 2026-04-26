@@ -47,14 +47,27 @@ pub async fn last_commit(repo: &Path) -> Option<LastCommit> {
     let hash = lines.next()?.to_string();
     let date = lines.next()?.to_string();
     let message = lines.next().unwrap_or("").to_string();
-    Some(LastCommit { hash, date, message })
+    Some(LastCommit {
+        hash,
+        date,
+        message,
+    })
 }
 
 fn parse_shortstat(s: &str) -> (u32, u32, u32) {
     if let Some(c) = SHORTSTAT_RE.captures(s) {
-        let f = c.get(1).map(|m| m.as_str().parse().unwrap_or(0)).unwrap_or(0);
-        let i = c.get(2).map(|m| m.as_str().parse().unwrap_or(0)).unwrap_or(0);
-        let d = c.get(3).map(|m| m.as_str().parse().unwrap_or(0)).unwrap_or(0);
+        let f = c
+            .get(1)
+            .map(|m| m.as_str().parse().unwrap_or(0))
+            .unwrap_or(0);
+        let i = c
+            .get(2)
+            .map(|m| m.as_str().parse().unwrap_or(0))
+            .unwrap_or(0);
+        let d = c
+            .get(3)
+            .map(|m| m.as_str().parse().unwrap_or(0))
+            .unwrap_or(0);
         (f, i, d)
     } else {
         (0, 0, 0)
@@ -79,12 +92,7 @@ pub async fn uncommitted(repo: &Path) -> (bool, Option<Uncommitted>) {
 
     let untracked = porcelain
         .as_ref()
-        .map(|o| {
-            o.stdout
-                .lines()
-                .filter(|l| l.starts_with("??"))
-                .count() as u32
-        })
+        .map(|o| o.stdout.lines().filter(|l| l.starts_with("??")).count() as u32)
         .unwrap_or(0);
 
     let files = uf + sf + untracked;
@@ -138,11 +146,7 @@ pub async fn unmerged_branches(repo: &Path) -> Option<u32> {
     if !out.ok() {
         return None;
     }
-    let count = out
-        .stdout
-        .lines()
-        .filter(|l| !l.trim().is_empty())
-        .count() as u32;
+    let count = out.stdout.lines().filter(|l| !l.trim().is_empty()).count() as u32;
     Some(count)
 }
 
@@ -173,8 +177,14 @@ mod tests {
             parse_shortstat(" 3 files changed, 10 insertions(+), 5 deletions(-)"),
             (3, 10, 5)
         );
-        assert_eq!(parse_shortstat(" 1 file changed, 2 insertions(+)"), (1, 2, 0));
-        assert_eq!(parse_shortstat(" 1 file changed, 4 deletions(-)"), (1, 0, 4));
+        assert_eq!(
+            parse_shortstat(" 1 file changed, 2 insertions(+)"),
+            (1, 2, 0)
+        );
+        assert_eq!(
+            parse_shortstat(" 1 file changed, 4 deletions(-)"),
+            (1, 0, 4)
+        );
         assert_eq!(parse_shortstat(""), (0, 0, 0));
     }
 }

@@ -23,7 +23,9 @@ use crate::discover::DiscoverOptions;
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
+        .with_env_filter(
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
+        )
         .with_writer(std::io::stderr)
         .init();
 
@@ -32,7 +34,9 @@ async fn main() -> Result<()> {
         .root
         .clone()
         .unwrap_or_else(|| std::env::current_dir().expect("cwd"));
-    let root = root.canonicalize().with_context(|| format!("invalid root: {}", root.display()))?;
+    let root = root
+        .canonicalize()
+        .with_context(|| format!("invalid root: {}", root.display()))?;
 
     let opts = DiscoverOptions {
         include_nested: args.include_nested,

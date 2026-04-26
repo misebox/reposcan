@@ -13,7 +13,11 @@ pub enum Format {
 }
 
 #[derive(Parser, Debug, Clone)]
-#[command(name = "reposcan", about = "Recursively scan git repositories and emit metadata", version)]
+#[command(
+    name = "reposcan",
+    about = "Recursively scan git repositories and emit metadata",
+    version
+)]
 pub struct Args {
     /// Root directory to scan (default: current directory)
     pub root: Option<PathBuf>,

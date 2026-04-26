@@ -51,6 +51,7 @@ async fn collect_one(root: &Path, repo: &Path, args: &Args) -> RepoEntry {
     tracing::info!(path = %entry.path, "scanning");
 
     // Run independent collectors in parallel.
+    let branch_fut = git::current_branch(repo);
     let remote_fut = git::remote_origin(repo);
     let last_commit_fut = git::last_commit(repo);
     let uncommitted_fut = git::uncommitted(repo);
@@ -59,7 +60,8 @@ async fn collect_one(root: &Path, repo: &Path, args: &Args) -> RepoEntry {
     let docker_fut = docker::collect(repo, args.no_docker);
     let dir_size_fut = loc::dir_size_bytes(repo);
 
-    let (remote, last, (dirty, unc), unpushed, unmerged, dock, dsize) = tokio::join!(
+    let (branch, remote, last, (dirty, unc), unpushed, unmerged, dock, dsize) = tokio::join!(
+        branch_fut,
         remote_fut,
         last_commit_fut,
         uncommitted_fut,
@@ -69,6 +71,7 @@ async fn collect_one(root: &Path, repo: &Path, args: &Args) -> RepoEntry {
         dir_size_fut,
     );
 
+    entry.current_branch = branch;
     if let Some(url) = &remote {
         entry.github_repo = git::parse_github_repo(url);
     }

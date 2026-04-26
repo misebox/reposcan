@@ -22,6 +22,14 @@ pub fn parse_github_repo(remote: &str) -> Option<String> {
         .map(|c| c.get(1).unwrap().as_str().trim_end_matches('/').to_string())
 }
 
+pub async fn current_branch(repo: &Path) -> Option<String> {
+    let out = run(repo, "git", &["rev-parse", "--abbrev-ref", "HEAD"]).await?;
+    if !out.ok() || out.stdout.is_empty() {
+        return None;
+    }
+    Some(out.stdout)
+}
+
 pub async fn remote_origin(repo: &Path) -> Option<String> {
     let out = run(repo, "git", &["remote", "get-url", "origin"]).await?;
     if !out.ok() || out.stdout.is_empty() {

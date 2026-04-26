@@ -27,6 +27,7 @@ pub enum Scale {
 pub struct RepoEntry {
     pub path: String,
     pub name: String,
+    pub current_branch: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub github_repo: Option<String>,
     pub github_description: Option<String>,
@@ -54,6 +55,7 @@ impl RepoEntry {
         Self {
             path,
             name,
+            current_branch: None,
             github_repo: None,
             github_description: None,
             is_private: None,

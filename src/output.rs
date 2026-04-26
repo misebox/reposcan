@@ -3,51 +3,112 @@ use std::io::Write;
 use anyhow::Result;
 use comfy_table::{presets::UTF8_FULL, ContentArrangement, Table};
 
-use crate::cli::Format;
+use crate::cli::{Args, Format};
 use crate::types::{RepoEntry, Scale};
 
-pub fn render<W: Write>(format: Format, entries: &[RepoEntry], w: &mut W) -> Result<()> {
-    match format {
-        Format::Json => write_json(entries, w),
-        Format::Csv => write_delimited(entries, b',', w),
-        Format::Tsv => write_delimited(entries, b'\t', w),
-        Format::Markdown => write_markdown(entries, w),
-        Format::Ascii => write_ascii(entries, w),
+#[derive(Copy, Clone, PartialEq, Eq)]
+enum Group {
+    Always,
+    Github,
+    Docker,
+    Loc,
+}
+
+#[derive(Copy, Clone)]
+struct Mask {
+    no_github: bool,
+    no_docker: bool,
+    no_loc: bool,
+}
+
+impl Mask {
+    fn from(args: &Args) -> Self {
+        Self {
+            no_github: args.no_github,
+            no_docker: args.no_docker,
+            no_loc: args.no_loc,
+        }
+    }
+    fn keep(&self, g: Group) -> bool {
+        match g {
+            Group::Always => true,
+            Group::Github => !self.no_github,
+            Group::Docker => !self.no_docker,
+            Group::Loc => !self.no_loc,
+        }
     }
 }
 
-fn write_json<W: Write>(entries: &[RepoEntry], w: &mut W) -> Result<()> {
-    serde_json::to_writer_pretty(&mut *w, entries)?;
+pub fn render<W: Write>(
+    format: Format,
+    entries: &[RepoEntry],
+    args: &Args,
+    w: &mut W,
+) -> Result<()> {
+    let mask = Mask::from(args);
+    match format {
+        Format::Json => write_json(entries, mask, w),
+        Format::Csv => write_delimited(entries, mask, b',', w),
+        Format::Tsv => write_delimited(entries, mask, b'\t', w),
+        Format::Markdown => write_markdown(entries, mask, w),
+        Format::Ascii => write_ascii(entries, mask, w),
+    }
+}
+
+fn write_json<W: Write>(entries: &[RepoEntry], mask: Mask, w: &mut W) -> Result<()> {
+    let mut arr = Vec::with_capacity(entries.len());
+    for e in entries {
+        let mut v = serde_json::to_value(e)?;
+        if let serde_json::Value::Object(map) = &mut v {
+            if mask.no_github {
+                for k in ["github_repo", "github_description", "is_private", "open_issues", "open_prs"] {
+                    map.remove(k);
+                }
+            }
+            if mask.no_docker {
+                for k in ["has_dockerfile", "compose_file", "compose_ports", "compose_running"] {
+                    map.remove(k);
+                }
+            }
+            if mask.no_loc {
+                for k in ["loc", "scale"] {
+                    map.remove(k);
+                }
+            }
+        }
+        arr.push(v);
+    }
+    serde_json::to_writer_pretty(&mut *w, &arr)?;
     writeln!(w)?;
     Ok(())
 }
 
-const HEADERS: &[&str] = &[
-    "path",
-    "name",
-    "github_repo",
-    "github_description",
-    "is_private",
-    "last_commit_hash",
-    "last_commit_date",
-    "last_commit_message",
-    "has_uncommitted",
-    "uncommitted_files",
-    "uncommitted_insertions",
-    "uncommitted_deletions",
-    "unpushed_commits",
-    "unmerged_branches",
-    "dir_size_bytes",
-    "tech_tags",
-    "has_readme",
-    "scale",
-    "loc",
-    "has_dockerfile",
-    "compose_file",
-    "compose_ports",
-    "compose_running",
-    "open_issues",
-    "open_prs",
+const FLAT_COLUMNS: &[(&str, Group)] = &[
+    ("path", Group::Always),
+    ("name", Group::Always),
+    ("github_repo", Group::Github),
+    ("github_description", Group::Github),
+    ("is_private", Group::Github),
+    ("last_commit_hash", Group::Always),
+    ("last_commit_date", Group::Always),
+    ("last_commit_message", Group::Always),
+    ("has_uncommitted", Group::Always),
+    ("uncommitted_files", Group::Always),
+    ("uncommitted_insertions", Group::Always),
+    ("uncommitted_deletions", Group::Always),
+    ("unpushed_commits", Group::Always),
+    ("unmerged_branches", Group::Always),
+    ("dir_size_bytes", Group::Always),
+    ("tech_tags", Group::Always),
+    ("has_readme", Group::Always),
+    ("scale", Group::Loc),
+    ("loc", Group::Loc),
+    ("has_dockerfile", Group::Docker),
+    ("compose_file", Group::Docker),
+    ("compose_ports", Group::Docker),
+    ("compose_running", Group::Docker),
+    ("open_issues", Group::Github),
+    ("open_prs", Group::Github),
 ];
 
 fn full_row(e: &RepoEntry) -> Vec<String> {
@@ -93,25 +154,49 @@ fn full_row(e: &RepoEntry) -> Vec<String> {
     ]
 }
 
-fn write_delimited<W: Write>(entries: &[RepoEntry], delim: u8, w: &mut W) -> Result<()> {
+fn flat_active(mask: Mask) -> Vec<usize> {
+    FLAT_COLUMNS
+        .iter()
+        .enumerate()
+        .filter(|(_, (_, g))| mask.keep(*g))
+        .map(|(i, _)| i)
+        .collect()
+}
+
+fn pick<T: Clone>(src: &[T], idx: &[usize]) -> Vec<T> {
+    idx.iter().map(|i| src[*i].clone()).collect()
+}
+
+fn write_delimited<W: Write>(
+    entries: &[RepoEntry],
+    mask: Mask,
+    delim: u8,
+    w: &mut W,
+) -> Result<()> {
+    let active = flat_active(mask);
+    let headers: Vec<&str> = active.iter().map(|i| FLAT_COLUMNS[*i].0).collect();
     let mut wtr = csv::WriterBuilder::new().delimiter(delim).from_writer(w);
-    wtr.write_record(HEADERS)?;
+    wtr.write_record(&headers)?;
     for e in entries {
-        wtr.write_record(full_row(e))?;
+        let row = full_row(e);
+        wtr.write_record(pick(&row, &active))?;
     }
     wtr.flush()?;
     Ok(())
 }
 
-fn write_markdown<W: Write>(entries: &[RepoEntry], w: &mut W) -> Result<()> {
-    writeln!(w, "| {} |", HEADERS.join(" | "))?;
+fn write_markdown<W: Write>(entries: &[RepoEntry], mask: Mask, w: &mut W) -> Result<()> {
+    let active = flat_active(mask);
+    let headers: Vec<&str> = active.iter().map(|i| FLAT_COLUMNS[*i].0).collect();
+    writeln!(w, "| {} |", headers.join(" | "))?;
     writeln!(
         w,
         "| {} |",
-        HEADERS.iter().map(|_| "---").collect::<Vec<_>>().join(" | ")
+        headers.iter().map(|_| "---").collect::<Vec<_>>().join(" | ")
     )?;
     for e in entries {
-        let cells: Vec<String> = full_row(e).into_iter().map(escape_md_cell).collect();
+        let row = full_row(e);
+        let cells: Vec<String> = pick(&row, &active).into_iter().map(escape_md_cell).collect();
         writeln!(w, "| {} |", cells.join(" | "))?;
     }
     Ok(())
@@ -126,28 +211,28 @@ fn escape_md_cell(s: String) -> String {
         .replace('\n', " ")
 }
 
-const ASCII_HEADERS: &[&str] = &[
-    "PATH",
-    "DATE",
-    "HASH",
-    "MSG",
-    "DIRTY",
-    "AHEAD",
-    "UNMERGED",
-    "GH",
-    "PRIV",
-    "DESC",
-    "ISSUES",
-    "PRS",
-    "LOC",
-    "SCALE",
-    "SIZE",
-    "README",
-    "DOCKERFILE",
-    "COMPOSE",
-    "PORTS",
-    "RUNNING",
-    "TAGS",
+const ASCII_COLUMNS: &[(&str, Group)] = &[
+    ("PATH", Group::Always),
+    ("DATE", Group::Always),
+    ("HASH", Group::Always),
+    ("MSG", Group::Always),
+    ("DIRTY", Group::Always),
+    ("AHEAD", Group::Always),
+    ("UNMERGED", Group::Always),
+    ("GH", Group::Github),
+    ("PRIV", Group::Github),
+    ("DESC", Group::Github),
+    ("ISSUES", Group::Github),
+    ("PRS", Group::Github),
+    ("LOC", Group::Loc),
+    ("SCALE", Group::Loc),
+    ("SIZE", Group::Always),
+    ("README", Group::Always),
+    ("DOCKERFILE", Group::Docker),
+    ("COMPOSE", Group::Docker),
+    ("PORTS", Group::Docker),
+    ("RUNNING", Group::Docker),
+    ("TAGS", Group::Always),
 ];
 
 fn ascii_row(e: &RepoEntry) -> Vec<String> {
@@ -235,14 +320,22 @@ fn ascii_row(e: &RepoEntry) -> Vec<String> {
     ]
 }
 
-fn write_ascii<W: Write>(entries: &[RepoEntry], w: &mut W) -> Result<()> {
+fn write_ascii<W: Write>(entries: &[RepoEntry], mask: Mask, w: &mut W) -> Result<()> {
+    let active: Vec<usize> = ASCII_COLUMNS
+        .iter()
+        .enumerate()
+        .filter(|(_, (_, g))| mask.keep(*g))
+        .map(|(i, _)| i)
+        .collect();
+    let headers: Vec<&str> = active.iter().map(|i| ASCII_COLUMNS[*i].0).collect();
     let mut table = Table::new();
     table
         .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_header(ASCII_HEADERS.to_vec());
+        .set_header(headers);
     for e in entries {
-        table.add_row(ascii_row(e));
+        let row = ascii_row(e);
+        table.add_row(pick(&row, &active));
     }
     writeln!(w, "{table}")?;
     Ok(())

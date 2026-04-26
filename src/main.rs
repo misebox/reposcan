@@ -65,13 +65,13 @@ async fn main() -> Result<()> {
         Some(path) => {
             let mut f = std::fs::File::create(path)
                 .with_context(|| format!("create {}", path.display()))?;
-            output::render(args.format, &entries, &args, &mut f)?;
+            output::render(args.format, &entries, &mut f)?;
             tracing::info!(path = %path.display(), n = entries.len(), format = ?args.format, "wrote output");
         }
         None => {
             let stdout = std::io::stdout();
             let mut handle = stdout.lock();
-            output::render(args.format, &entries, &args, &mut handle)?;
+            output::render(args.format, &entries, &mut handle)?;
         }
     }
 

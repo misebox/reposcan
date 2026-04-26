@@ -133,7 +133,7 @@ if [ "$mode" != "--current" ]; then
     echo "DRY: bump Cargo.toml version $cur -> $new"
   else
     write_version "$new"
-    cargo update -p reposcan --precise "$new" >/dev/null 2>&1 || true
+    cargo check --quiet  # refresh Cargo.lock with new version
     git add Cargo.toml Cargo.lock
     git commit -m "Release ${tag}"
   fi

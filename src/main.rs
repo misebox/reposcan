@@ -46,13 +46,16 @@ async fn main() -> Result<()> {
     let args_arc = Arc::new(args.clone());
     let mut entries = collect::collect_all(&root, repos, args_arc).await;
 
-    if args.merge {
-        output::merge_user_fields(&args.output, &mut entries);
+    if let Some(json_path) = &args.output {
+        if args.merge {
+            output::merge_user_fields(json_path, &mut entries);
+        }
+        output::write_json(json_path, &entries)
+            .with_context(|| format!("write json: {}", json_path.display()))?;
+        tracing::info!(path = %json_path.display(), n = entries.len(), "wrote JSON");
+    } else if args.merge {
+        tracing::warn!("--merge has no effect without --output");
     }
-
-    output::write_json(&args.output, &entries)
-        .with_context(|| format!("write json: {}", args.output.display()))?;
-    tracing::info!(path = %args.output.display(), n = entries.len(), "wrote JSON");
 
     if let Some(csv_path) = &args.csv {
         output::write_csv(csv_path, &entries)
@@ -60,7 +63,8 @@ async fn main() -> Result<()> {
         tracing::info!(path = %csv_path.display(), "wrote CSV");
     }
 
-    if args.table {
+    let wrote_file = args.output.is_some() || args.csv.is_some();
+    if args.table || !wrote_file {
         output::print_table(&entries);
     }
 

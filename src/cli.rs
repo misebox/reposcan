@@ -8,11 +8,11 @@ pub struct Args {
     /// Root directory to scan (default: current directory)
     pub root: Option<PathBuf>,
 
-    /// JSON output path
-    #[arg(long, default_value = "./reposcan.json")]
-    pub output: PathBuf,
+    /// Write JSON to this path (default: no file output)
+    #[arg(long)]
+    pub output: Option<PathBuf>,
 
-    /// Also write CSV to this path
+    /// Write CSV to this path
     #[arg(long)]
     pub csv: Option<PathBuf>,
 
@@ -44,7 +44,7 @@ pub struct Args {
     #[arg(long)]
     pub merge: bool,
 
-    /// Print a summary table to stdout
+    /// Force-print the summary table even when --output / --csv are given
     #[arg(long)]
     pub table: bool,
 }

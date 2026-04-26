@@ -1,6 +1,6 @@
 # reposcan
 
-Recursively scan a directory for git repositories and emit per-repo metadata as JSON / CSV / table.
+Recursively scan a directory for git repositories and emit per-repo metadata as JSON / CSV / TSV / Markdown / ASCII table.
 
 ## Build
 
@@ -24,21 +24,21 @@ reposcan [ROOT_DIR] [OPTIONS]
 
 | Option | Default | Purpose |
 |---|---|---|
-| `--output <PATH>` | `./reposcan.json` | JSON output path |
-| `--csv <PATH>` | – | Also emit CSV |
+| `--format <FMT>` | `ascii` | One of: `ascii`, `json`, `csv`, `tsv`, `markdown` |
+| `--output <PATH>` | – | Write to file instead of stdout |
 | `--no-github` | off | Skip `gh` lookups |
 | `--no-docker` | off | Skip `docker compose ps` |
 | `--no-loc` | off | Skip line counting |
 | `--include-nested` | off | Descend into nested git repos |
 | `--exclude <NAME>` | – | Extra dir name to skip (repeatable) |
 | `--concurrency <N>` | `4` | Repositories scanned in parallel |
-| `--merge` | off | Merge into existing JSON, preserving manual tags / descriptions |
-| `--table` | off | Print summary table to stdout |
 
-### Example
+### Examples
 
 ```sh
-reposcan ~/repos/private --csv ~/repos/private/reposcan.csv --table
+reposcan ~/repos/private                                       # ascii table to stdout
+reposcan ~/repos/private --format json --output catalog.json   # JSON to file
+reposcan ~/repos/private --format markdown > catalog.md        # markdown via shell redirect
 ```
 
 ## Pruned directories

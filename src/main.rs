@@ -44,28 +44,20 @@ async fn main() -> Result<()> {
     tracing::info!(count = repos.len(), "found repositories");
 
     let args_arc = Arc::new(args.clone());
-    let mut entries = collect::collect_all(&root, repos, args_arc).await;
+    let entries = collect::collect_all(&root, repos, args_arc).await;
 
-    if let Some(json_path) = &args.output {
-        if args.merge {
-            output::merge_user_fields(json_path, &mut entries);
+    match &args.output {
+        Some(path) => {
+            let mut f = std::fs::File::create(path)
+                .with_context(|| format!("create {}", path.display()))?;
+            output::render(args.format, &entries, &mut f)?;
+            tracing::info!(path = %path.display(), n = entries.len(), format = ?args.format, "wrote output");
         }
-        output::write_json(json_path, &entries)
-            .with_context(|| format!("write json: {}", json_path.display()))?;
-        tracing::info!(path = %json_path.display(), n = entries.len(), "wrote JSON");
-    } else if args.merge {
-        tracing::warn!("--merge has no effect without --output");
-    }
-
-    if let Some(csv_path) = &args.csv {
-        output::write_csv(csv_path, &entries)
-            .with_context(|| format!("write csv: {}", csv_path.display()))?;
-        tracing::info!(path = %csv_path.display(), "wrote CSV");
-    }
-
-    let wrote_file = args.output.is_some() || args.csv.is_some();
-    if args.table || !wrote_file {
-        output::print_table(&entries);
+        None => {
+            let stdout = std::io::stdout();
+            let mut handle = stdout.lock();
+            output::render(args.format, &entries, &mut handle)?;
+        }
     }
 
     Ok(())

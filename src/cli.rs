@@ -1,6 +1,16 @@
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+#[value(rename_all = "lowercase")]
+pub enum Format {
+    Ascii,
+    Json,
+    Csv,
+    Tsv,
+    Markdown,
+}
 
 #[derive(Parser, Debug, Clone)]
 #[command(name = "reposcan", about = "Recursively scan git repositories and emit metadata", version)]
@@ -8,13 +18,13 @@ pub struct Args {
     /// Root directory to scan (default: current directory)
     pub root: Option<PathBuf>,
 
-    /// Write JSON to this path (default: no file output)
+    /// Output format
+    #[arg(long, value_enum, default_value_t = Format::Ascii)]
+    pub format: Format,
+
+    /// Write to this path instead of stdout
     #[arg(long)]
     pub output: Option<PathBuf>,
-
-    /// Write CSV to this path
-    #[arg(long)]
-    pub csv: Option<PathBuf>,
 
     /// Skip GitHub (gh) lookups
     #[arg(long)]
@@ -39,12 +49,4 @@ pub struct Args {
     /// Number of repositories to scan in parallel
     #[arg(long, default_value_t = 4)]
     pub concurrency: usize,
-
-    /// Merge with existing JSON, preserving user-edited fields and manual tags
-    #[arg(long)]
-    pub merge: bool,
-
-    /// Force-print the summary table even when --output / --csv are given
-    #[arg(long)]
-    pub table: bool,
 }

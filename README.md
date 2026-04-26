@@ -1,4 +1,4 @@
-# reposcan
+# reposnap
 
 Recursively scan a directory for git repositories and emit per-repo metadata as JSON / CSV / TSV / Markdown / ASCII table.
 
@@ -6,19 +6,19 @@ Recursively scan a directory for git repositories and emit per-repo metadata as 
 
 ```sh
 # Homebrew (macOS / Linux)
-brew install misebox/tap/reposcan
+brew install misebox/tap/reposnap
 
 # crates.io
-cargo install reposcan
+cargo install reposnap
 
 # From source
-cargo build --release   # → ./target/release/reposcan
+cargo build --release   # → ./target/release/reposnap
 ```
 
 ## Runtime dependencies
 
 Called as subprocesses. Missing tools are auto-detected and the
-corresponding fields are skipped silently. Run `reposcan --diagnose`
+corresponding fields are skipped silently. Run `reposnap --diagnose`
 for a status table and per-OS install hints.
 
 | Tool    | Required | Used for |
@@ -32,7 +32,7 @@ LOC counting is built in (uses the `tokei` library directly).
 ## Usage
 
 ```sh
-reposcan [ROOT_DIR] [OPTIONS]
+reposnap [ROOT_DIR] [OPTIONS]
 ```
 
 | Option | Default | Purpose |
@@ -50,10 +50,10 @@ reposcan [ROOT_DIR] [OPTIONS]
 ### Examples
 
 ```sh
-reposcan ~/repos/private                                       # ascii table to stdout
-reposcan ~/repos/private --format json --output catalog.json   # JSON to file
-reposcan ~/repos/private --format markdown > catalog.md        # markdown via shell redirect
-reposcan --diagnose                                            # check which tools are available
+reposnap ~/repos/private                                       # ascii table to stdout
+reposnap ~/repos/private --format json --output catalog.json   # JSON to file
+reposnap ~/repos/private --format markdown > catalog.md        # markdown via shell redirect
+reposnap --diagnose                                            # check which tools are available
 ```
 
 ## Pruned directories

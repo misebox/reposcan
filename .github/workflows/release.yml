@@ -37,7 +37,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/upload-rust-binary-action@v1
         with:
-          bin: reposcan
+          bin: reposnap
           target: ${{ matrix.target }}
           ref: ${{ github.ref }}
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -64,5 +64,5 @@ jobs:
         run: |
           gh workflow run bump.yml \
             -R misebox/homebrew-tap \
-            -f tool=reposcan \
+            -f tool=reposnap \
             -f version="${TAG#v}"

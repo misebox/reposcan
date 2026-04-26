@@ -1,11 +1,11 @@
 [package]
-name = "reposcan"
+name = "reposnap"
 version = "0.1.0"
 edition = "2021"
 description = "Catalog git repositories under a directory and emit per-repo state, tech stack, and metadata."
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/misebox/reposcan"
-homepage = "https://github.com/misebox/reposcan"
+repository = "https://github.com/misebox/reposnap"
+homepage = "https://github.com/misebox/reposnap"
 readme = "README.md"
 keywords = ["cli", "git", "repository", "scanner", "catalog"]
 categories = ["command-line-utilities"]

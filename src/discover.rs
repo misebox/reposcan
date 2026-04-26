@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn detects_repos_and_prunes() {
-        let tmp = std::env::temp_dir().join(format!("reposcan-test-{}", std::process::id()));
+        let tmp = std::env::temp_dir().join(format!("reposnap-test-{}", std::process::id()));
         let _ = fs::remove_dir_all(&tmp);
 
         // repo A: has .git directory

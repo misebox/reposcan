@@ -80,7 +80,7 @@ async fn main() -> Result<()> {
 
 fn check_tools(args: &mut Args) -> Result<()> {
     if !tools::is_available("git") {
-        anyhow::bail!("git not found in PATH (required). Run `reposcan --diagnose` for help.");
+        anyhow::bail!("git not found in PATH (required). Run `reposnap --diagnose` for help.");
     }
     if !args.no_github && !tools::is_available("gh") {
         args.no_github = true;

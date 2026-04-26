@@ -14,7 +14,7 @@ pub enum Format {
 
 #[derive(Parser, Debug, Clone)]
 #[command(
-    name = "reposcan",
+    name = "reposnap",
     about = "Recursively scan git repositories and emit metadata",
     version
 )]

@@ -157,16 +157,16 @@ mod tests {
     #[test]
     fn parses_github_remote_urls() {
         assert_eq!(
-            parse_github_repo("git@github.com:misebox/reposcan.git"),
-            Some("misebox/reposcan".into())
+            parse_github_repo("git@github.com:misebox/reposnap.git"),
+            Some("misebox/reposnap".into())
         );
         assert_eq!(
-            parse_github_repo("https://github.com/misebox/reposcan.git"),
-            Some("misebox/reposcan".into())
+            parse_github_repo("https://github.com/misebox/reposnap.git"),
+            Some("misebox/reposnap".into())
         );
         assert_eq!(
-            parse_github_repo("https://github.com/misebox/reposcan"),
-            Some("misebox/reposcan".into())
+            parse_github_repo("https://github.com/misebox/reposnap"),
+            Some("misebox/reposnap".into())
         );
         assert_eq!(parse_github_repo("git@gitlab.com:foo/bar.git"), None);
     }

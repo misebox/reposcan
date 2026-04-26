@@ -48,7 +48,7 @@ pub fn is_available(cmd: &str) -> bool {
 
 pub fn print_diagnosis() {
     let os = std::env::consts::OS;
-    println!("reposcan tool diagnosis  (platform: {})\n", os);
+    println!("reposnap tool diagnosis  (platform: {})\n", os);
 
     let max_name = TOOLS.iter().map(|t| t.name.len()).max().unwrap_or(0);
     for tool in TOOLS {

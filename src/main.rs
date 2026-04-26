@@ -7,6 +7,7 @@ mod github;
 mod loc;
 mod output;
 mod tags;
+mod tools;
 mod types;
 mod util;
 
@@ -29,7 +30,15 @@ async fn main() -> Result<()> {
         .with_writer(std::io::stderr)
         .init();
 
-    let args = Args::parse();
+    let mut args = Args::parse();
+
+    if args.diagnose {
+        tools::print_diagnosis();
+        return Ok(());
+    }
+
+    check_tools(&mut args)?;
+
     let root = args
         .root
         .clone()
@@ -64,5 +73,18 @@ async fn main() -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+fn check_tools(args: &mut Args) -> Result<()> {
+    if !tools::is_available("git") {
+        anyhow::bail!("git not found in PATH (required). Run `reposcan --diagnose` for help.");
+    }
+    if !args.no_github && !tools::is_available("gh") {
+        args.no_github = true;
+    }
+    if !args.no_docker && !tools::is_available("docker") {
+        args.no_docker = true;
+    }
     Ok(())
 }

@@ -53,4 +53,8 @@ pub struct Args {
     /// Number of repositories to scan in parallel
     #[arg(long, default_value_t = 4)]
     pub concurrency: usize,
+
+    /// Print external tool status and install hints, then exit
+    #[arg(long)]
+    pub diagnose: bool,
 }

@@ -87,37 +87,150 @@ pub fn print_table(entries: &[RepoEntry]) {
     table
         .load_preset(UTF8_FULL)
         .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_header(vec!["PATH", "LAST COMMIT", "DIRTY", "DOCKER", "TAGS", "SCALE"]);
+        .set_header(vec![
+            "PATH",
+            "DATE",
+            "HASH",
+            "MSG",
+            "DIRTY",
+            "AHEAD",
+            "UNMERGED",
+            "GH",
+            "PRIV",
+            "DESC",
+            "ISSUES",
+            "PRS",
+            "LOC",
+            "SCALE",
+            "SIZE",
+            "README",
+            "DOCKERFILE",
+            "COMPOSE",
+            "PORTS",
+            "RUNNING",
+            "TAGS",
+        ]);
 
     for e in entries {
-        let last = e
+        let date = e
             .last_commit
             .as_ref()
             .map(|c| c.date.split('T').next().unwrap_or("").to_string())
-            .unwrap_or_default();
+            .unwrap_or_else(|| "-".into());
+        let hash = e
+            .last_commit
+            .as_ref()
+            .map(|c| c.hash.clone())
+            .unwrap_or_else(|| "-".into());
+        let msg = e
+            .last_commit
+            .as_ref()
+            .map(|c| truncate(&c.message, 40))
+            .unwrap_or_else(|| "-".into());
         let dirty = match &e.uncommitted {
-            Some(u) => format!("{}files", u.files),
+            Some(u) => format!("{}f+{}-{}", u.files, u.insertions, u.deletions),
             None => "-".into(),
         };
-        let docker = if e.compose_running {
-            "running"
-        } else if e.has_dockerfile || e.compose_file.is_some() {
-            "yes"
-        } else {
-            "-"
+        let ahead = num_or_dash(e.unpushed_commits.map(|n| n as u64));
+        let unmerged = num_or_dash(e.unmerged_branches.map(|n| n as u64));
+        let gh = e.github_repo.clone().unwrap_or_else(|| "-".into());
+        let priv_ = match e.is_private {
+            Some(true) => "Y",
+            Some(false) => "N",
+            None => "-",
         };
-        let tags = e.tech_tags.join(",");
-        let scale = e.scale.map(scale_str).unwrap_or("-");
+        let desc = e
+            .github_description
+            .as_deref()
+            .map(|s| truncate(s, 40))
+            .unwrap_or_else(|| "-".into());
+        let issues = num_or_dash(e.open_issues.map(|n| n as u64));
+        let prs = num_or_dash(e.open_prs.map(|n| n as u64));
+        let loc = e.loc.map(humanize_count).unwrap_or_else(|| "-".into());
+        let scale = e.scale.map(scale_str).unwrap_or("-").to_string();
+        let size = e.dir_size_bytes.map(humanize_bytes).unwrap_or_else(|| "-".into());
+        let readme = if e.has_readme { "Y" } else { "N" };
+        let dockerfile = if e.has_dockerfile { "Y" } else { "N" };
+        let compose = e.compose_file.clone().unwrap_or_else(|| "-".into());
+        let ports = if e.compose_ports.is_empty() {
+            "-".into()
+        } else {
+            e.compose_ports
+                .iter()
+                .map(|p| p.to_string())
+                .collect::<Vec<_>>()
+                .join(",")
+        };
+        let running = if e.compose_running { "Y" } else { "N" };
+        let tags = if e.tech_tags.is_empty() {
+            "-".into()
+        } else {
+            e.tech_tags.join(",")
+        };
+
         table.add_row(vec![
             e.path.as_str(),
-            &last,
+            &date,
+            &hash,
+            &msg,
             &dirty,
-            docker,
+            &ahead,
+            &unmerged,
+            &gh,
+            priv_,
+            &desc,
+            &issues,
+            &prs,
+            &loc,
+            &scale,
+            &size,
+            readme,
+            dockerfile,
+            &compose,
+            &ports,
+            running,
             &tags,
-            scale,
         ]);
     }
     println!("{table}");
+}
+
+fn truncate(s: &str, max: usize) -> String {
+    let s = s.lines().next().unwrap_or("");
+    if s.chars().count() <= max {
+        return s.to_string();
+    }
+    let head: String = s.chars().take(max.saturating_sub(1)).collect();
+    format!("{head}…")
+}
+
+fn num_or_dash(v: Option<u64>) -> String {
+    v.map(|n| n.to_string()).unwrap_or_else(|| "-".into())
+}
+
+fn humanize_count(n: u64) -> String {
+    if n < 1_000 {
+        format!("{n}")
+    } else if n < 1_000_000 {
+        format!("{:.1}k", n as f64 / 1_000.0)
+    } else {
+        format!("{:.1}M", n as f64 / 1_000_000.0)
+    }
+}
+
+fn humanize_bytes(n: u64) -> String {
+    const KB: u64 = 1024;
+    const MB: u64 = 1024 * 1024;
+    const GB: u64 = 1024 * 1024 * 1024;
+    if n < KB {
+        format!("{n}B")
+    } else if n < MB {
+        format!("{:.1}K", n as f64 / KB as f64)
+    } else if n < GB {
+        format!("{:.1}M", n as f64 / MB as f64)
+    } else {
+        format!("{:.2}G", n as f64 / GB as f64)
+    }
 }
 
 pub fn merge_user_fields(path: &Path, fresh: &mut [RepoEntry]) {

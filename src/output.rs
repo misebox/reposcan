@@ -213,9 +213,7 @@ fn escape_md_cell(s: String) -> String {
 
 const ASCII_COLUMNS: &[(&str, Group)] = &[
     ("PATH", Group::Always),
-    ("DATE", Group::Always),
-    ("HASH", Group::Always),
-    ("MSG", Group::Always),
+    ("LAST COMMIT\nDATE", Group::Always),
     ("DIRTY", Group::Always),
     ("AHEAD", Group::Always),
     ("UNMERGED", Group::Always),
@@ -240,16 +238,6 @@ fn ascii_row(e: &RepoEntry) -> Vec<String> {
         .last_commit
         .as_ref()
         .map(|c| c.date.split('T').next().unwrap_or("").to_string())
-        .unwrap_or_else(|| "-".into());
-    let hash = e
-        .last_commit
-        .as_ref()
-        .map(|c| c.hash.clone())
-        .unwrap_or_else(|| "-".into());
-    let msg = e
-        .last_commit
-        .as_ref()
-        .map(|c| truncate(&c.message, 40))
         .unwrap_or_else(|| "-".into());
     let dirty = match &e.uncommitted {
         Some(u) => format!("{}f+{}-{}", u.files, u.insertions, u.deletions),
@@ -298,8 +286,6 @@ fn ascii_row(e: &RepoEntry) -> Vec<String> {
     vec![
         e.path.clone(),
         date,
-        hash,
-        msg,
         dirty,
         ahead,
         unmerged,

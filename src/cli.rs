@@ -56,6 +56,12 @@ pub struct Args {
     #[arg(long)]
     pub only_tag: Vec<String>,
 
+    /// Filter expressions like 'field<op>value'. Operators: =, !=, >, <, >=, <=, ~.
+    /// Repeatable or comma-separated; all conditions are ANDed.
+    /// Examples: --filter scale=large --filter ahead>0 --filter tech_tags~rust
+    #[arg(long, value_delimiter = ',', allow_hyphen_values = true)]
+    pub filter: Vec<String>,
+
     /// Suppress tracing log output (errors only)
     #[arg(long, short = 'q')]
     pub quiet: bool,

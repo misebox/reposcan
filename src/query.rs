@@ -3,10 +3,15 @@ use std::cmp::Ordering;
 use anyhow::{anyhow, Result};
 
 use crate::cli::Args;
+use crate::fields::canonical;
 use crate::types::{RepoEntry, Scale};
 
 pub fn apply(args: &Args, mut entries: Vec<RepoEntry>) -> Result<Vec<RepoEntry>> {
-    let filters: Vec<Filter> = args.filter.iter().map(|s| Filter::parse(s)).collect::<Result<_>>()?;
+    let filters: Vec<Filter> = args
+        .filter
+        .iter()
+        .map(|s| Filter::parse(s))
+        .collect::<Result<_>>()?;
     for f in &filters {
         f.validate()?;
     }
@@ -73,7 +78,7 @@ impl Filter {
                     return Err(anyhow!("filter missing field name: '{}'", spec));
                 }
                 return Ok(Filter {
-                    field: field.to_string(),
+                    field: canonical(field).to_string(),
                     op: *op,
                     value: value.to_string(),
                 });
@@ -105,6 +110,7 @@ enum FieldVal {
     Str(String),
     Bool(bool),
     Num(i64),
+    Scale(Scale),
     Strings(Vec<String>),
     Numbers(Vec<i64>),
     Missing,
@@ -117,7 +123,10 @@ fn entry_field(field: &str, e: &RepoEntry) -> Option<FieldVal> {
         "current_branch" => opt_str(&e.current_branch),
         "github_repo" => opt_str(&e.github_repo),
         "github_description" => opt_str(&e.github_description),
-        "is_private" => e.is_private.map(FieldVal::Bool).unwrap_or(FieldVal::Missing),
+        "is_private" => e
+            .is_private
+            .map(FieldVal::Bool)
+            .unwrap_or(FieldVal::Missing),
         "last_commit_hash" => e
             .last_commit
             .as_ref()
@@ -157,10 +166,7 @@ fn entry_field(field: &str, e: &RepoEntry) -> Option<FieldVal> {
             .loc
             .map(|n| FieldVal::Num(n as i64))
             .unwrap_or(FieldVal::Missing),
-        "scale" => e
-            .scale
-            .map(|s| FieldVal::Str(scale_name(s).to_string()))
-            .unwrap_or(FieldVal::Missing),
+        "scale" => e.scale.map(FieldVal::Scale).unwrap_or(FieldVal::Missing),
         "dir_size_bytes" => e
             .dir_size_bytes
             .map(|n| FieldVal::Num(n as i64))
@@ -232,6 +238,31 @@ fn evaluate(val: &FieldVal, op: Op, raw: &str) -> bool {
                 .unwrap_or(false),
             _ => false,
         },
+        FieldVal::Scale(s) => parse_scale(raw)
+            .map(|target| {
+                let a = scale_rank(*s) as i64;
+                let b = scale_rank(target) as i64;
+                match op {
+                    Op::Eq => a == b,
+                    Op::Ne => a != b,
+                    Op::Gt => a > b,
+                    Op::Lt => a < b,
+                    Op::Ge => a >= b,
+                    Op::Le => a <= b,
+                    Op::Contains => false,
+                }
+            })
+            .unwrap_or(false),
+    }
+}
+
+fn parse_scale(raw: &str) -> Option<Scale> {
+    match raw.to_ascii_lowercase().as_str() {
+        "small" => Some(Scale::Small),
+        "medium" => Some(Scale::Medium),
+        "large" => Some(Scale::Large),
+        "huge" => Some(Scale::Huge),
+        _ => None,
     }
 }
 
@@ -253,11 +284,12 @@ fn sort(spec: &[String], entries: &mut [RepoEntry]) -> Result<()> {
         .iter()
         .map(|raw| {
             let s = raw.trim();
-            if let Some(rest) = s.strip_prefix('-') {
-                (rest.to_string(), false) // desc
+            let (field, asc) = if let Some(rest) = s.strip_prefix('-') {
+                (rest, false)
             } else {
-                (s.to_string(), true) // asc
-            }
+                (s, true)
+            };
+            (canonical(field).to_string(), asc)
         })
         .collect();
     for (field, _) in &keys {
@@ -340,21 +372,6 @@ fn scale_rank(s: Scale) -> u8 {
     }
 }
 
-fn scale_name(s: Scale) -> &'static str {
-    match s {
-        Scale::Small => "small",
-        Scale::Medium => "medium",
-        Scale::Large => "large",
-        Scale::Huge => "huge",
-    }
-}
-
-impl RepoEntry {
-    fn placeholder() -> Self {
-        RepoEntry::new(String::new(), String::new())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -405,5 +422,34 @@ mod tests {
         let v = FieldVal::Missing;
         assert!(!evaluate(&v, Op::Eq, "anything"));
         assert!(!evaluate(&v, Op::Ne, "anything"));
+    }
+
+    #[test]
+    fn scale_uses_logical_rank_not_string_order() {
+        let large = FieldVal::Scale(Scale::Large);
+        // Lexically "large" < "small" but logically Large > Small.
+        assert!(evaluate(&large, Op::Gt, "small"));
+        assert!(evaluate(&large, Op::Lt, "huge"));
+        assert!(evaluate(&large, Op::Eq, "large"));
+        assert!(evaluate(&large, Op::Ne, "huge"));
+        // Unknown scale name → false.
+        assert!(!evaluate(&large, Op::Eq, "gigantic"));
+    }
+
+    #[test]
+    fn filter_resolves_aliases() {
+        let f = Filter::parse("ahead>0").unwrap();
+        assert_eq!(f.field, "unpushed_commits");
+        let f = Filter::parse("dirty=true").unwrap();
+        assert_eq!(f.field, "has_uncommitted");
+        let f = Filter::parse("tags~rust").unwrap();
+        assert_eq!(f.field, "tech_tags");
+    }
+
+    #[test]
+    fn date_filter_is_iso_lexical() {
+        let v = FieldVal::Str("2026-04-27T10:00:00+09:00".into());
+        assert!(evaluate(&v, Op::Ge, "2026-01-01"));
+        assert!(!evaluate(&v, Op::Lt, "2026-01-01"));
     }
 }

@@ -31,9 +31,17 @@ pub struct Args {
     #[arg(long, help_heading = "Output")]
     pub output: Option<PathBuf>,
 
-    /// Comma-separated fields to include. Use 'all' for default. Group aliases:
-    /// @minimal, @activity, @github. Example: --fields path,name,@activity
-    #[arg(long, value_delimiter = ',', help_heading = "Output")]
+    /// Comma-separated fields to include.
+    ///
+    /// Use 'all' for the default set.
+    /// Group aliases: @minimal, @activity, @github
+    /// Example: --fields path,name,@activity
+    #[arg(
+        long,
+        value_delimiter = ',',
+        verbatim_doc_comment,
+        help_heading = "Output"
+    )]
     pub fields: Vec<String>,
 
     /// Suppress tracing log output (errors only)
@@ -41,13 +49,41 @@ pub struct Args {
     pub quiet: bool,
 
     // ---- Filter / sort ----
-    /// Filter expressions like 'field<op>value'. Operators: =, !=, >, <, >=, <=, ~.
-    /// Repeatable or comma-separated; all conditions are ANDed.
-    /// Examples: --filter scale=large --filter ahead>0 --filter tech_tags~rust
+    /// Filter expression 'field<op>value' (repeatable, ANDed).
+    ///
+    /// Operators: =, !=, >, <, >=, <=, ~  (~ = substring / array contains)
+    ///
+    /// Fields (canonical / alias):
+    ///   path  name  current_branch (branch)
+    ///   github_repo (gh)  is_private (priv)  github_description (desc)
+    ///   last_commit_hash  last_commit_date  last_commit_message
+    ///   has_uncommitted (dirty)  uncommitted_files  uncommitted_insertions  uncommitted_deletions
+    ///   unpushed_commits (ahead)  unmerged_branches (unmerged)
+    ///   open_issues  open_prs
+    ///   loc  scale  dir_size_bytes (size)
+    ///   has_readme (readme)  has_dockerfile (dockerfile)
+    ///   compose_file (compose)  compose_ports (ports)  compose_running (running)
+    ///   tech_tags (tags)
+    ///
+    /// Type semantics:
+    ///   string: =, !=, ~  (date strings are ISO so lexical = chronological)
+    ///   bool:   =, !=     (true|false|yes|no|1|0, case-insensitive)
+    ///   number: =, !=, >, <, >=, <=
+    ///   scale:  =, !=, >, <, >=, <=  (small < medium < large < huge)
+    ///   array:  ~          (contains)
+    ///
+    /// Null fields never match any condition.
+    /// Values may contain commas (use --filter twice for AND).
+    ///
+    /// Examples:
+    ///   --filter ahead>0
+    ///   --filter scale>=large
+    ///   --filter "last_commit_date<2025-01-01"
+    ///   --filter tags~rust --filter tags~wasm
     #[arg(
         long,
-        value_delimiter = ',',
         allow_hyphen_values = true,
+        verbatim_doc_comment,
         help_heading = "Filter / sort"
     )]
     pub filter: Vec<String>,
@@ -64,12 +100,14 @@ pub struct Args {
     #[arg(long, help_heading = "Filter / sort")]
     pub only_tag: Vec<String>,
 
-    /// Sort by field(s); prefix with '-' for descending. Comma separated.
+    /// Sort by field(s); '-' prefix = descending; comma separated.
+    ///
     /// Example: --sort=-last_commit_date,path
     #[arg(
         long,
         value_delimiter = ',',
         allow_hyphen_values = true,
+        verbatim_doc_comment,
         help_heading = "Filter / sort"
     )]
     pub sort: Vec<String>,

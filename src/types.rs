@@ -51,6 +51,11 @@ pub struct RepoEntry {
 }
 
 impl RepoEntry {
+    /// Empty entry used by query field validators when checking field names.
+    pub fn placeholder() -> Self {
+        Self::new(String::new(), String::new())
+    }
+
     pub fn new(path: String, name: String) -> Self {
         Self {
             path,

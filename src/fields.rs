@@ -1,5 +1,34 @@
 use anyhow::{anyhow, Result};
 
+/// Short aliases (mostly mirroring the ASCII column headers) that map to the
+/// canonical field names. Used by --filter, --sort, --fields uniformly.
+const ALIASES: &[(&str, &str)] = &[
+    ("branch", "current_branch"),
+    ("dirty", "has_uncommitted"),
+    ("ahead", "unpushed_commits"),
+    ("unmerged", "unmerged_branches"),
+    ("gh", "github_repo"),
+    ("priv", "is_private"),
+    ("desc", "github_description"),
+    ("tags", "tech_tags"),
+    ("readme", "has_readme"),
+    ("size", "dir_size_bytes"),
+    ("dockerfile", "has_dockerfile"),
+    ("compose", "compose_file"),
+    ("ports", "compose_ports"),
+    ("running", "compose_running"),
+];
+
+/// Resolve an alias to its canonical name, or return the input unchanged.
+pub fn canonical(name: &str) -> &str {
+    for (alias, canon) in ALIASES {
+        if *alias == name {
+            return canon;
+        }
+    }
+    name
+}
+
 /// Canonical field names in their default order. Same set as the flat headers
 /// used for csv / tsv / markdown output.
 pub const ALL_FIELDS: &[&str] = &[
@@ -100,14 +129,15 @@ pub fn resolve(spec: &[String]) -> Result<Vec<&'static str>> {
             }
             continue;
         }
-        let canonical = ALL_FIELDS.iter().find(|f| **f == token).ok_or_else(|| {
+        let resolved = canonical(token);
+        let matched = ALL_FIELDS.iter().find(|f| **f == resolved).ok_or_else(|| {
             anyhow!(
                 "unknown field '{}'. Run with --fields all to see canonical names.",
                 token
             )
         })?;
-        if seen.insert(*canonical) {
-            out.push(*canonical);
+        if seen.insert(*matched) {
+            out.push(*matched);
         }
     }
     Ok(out)
@@ -149,5 +179,17 @@ mod tests {
     #[test]
     fn unknown_group_errors() {
         assert!(resolve(&["@bogus".into()]).is_err());
+    }
+
+    #[test]
+    fn alias_normalizes_to_canonical() {
+        let r = resolve(&["branch".into(), "ahead".into(), "tags".into()]).unwrap();
+        assert_eq!(r, vec!["current_branch", "unpushed_commits", "tech_tags"]);
+    }
+
+    #[test]
+    fn alias_dedups_against_canonical() {
+        let r = resolve(&["current_branch".into(), "branch".into()]).unwrap();
+        assert_eq!(r, vec!["current_branch"]);
     }
 }

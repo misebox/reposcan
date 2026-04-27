@@ -30,6 +30,36 @@ pub struct Args {
     #[arg(long)]
     pub output: Option<PathBuf>,
 
+    /// Comma-separated fields to include. Use 'all' for default. Group aliases:
+    /// @minimal, @activity, @github. Example: --fields path,name,@activity
+    #[arg(long, value_delimiter = ',')]
+    pub fields: Vec<String>,
+
+    /// Sort by field(s); prefix with '-' for descending. Comma separated.
+    /// Example: --sort=-last_commit_date,path
+    #[arg(long, value_delimiter = ',', allow_hyphen_values = true)]
+    pub sort: Vec<String>,
+
+    /// Show only the first N repositories (after sort/filter)
+    #[arg(long)]
+    pub limit: Option<usize>,
+
+    /// Show only repositories with uncommitted changes
+    #[arg(long)]
+    pub only_dirty: bool,
+
+    /// Show only repositories with unpushed commits
+    #[arg(long)]
+    pub only_unpushed: bool,
+
+    /// Show only repositories whose tech_tags include this tag (repeatable, AND)
+    #[arg(long)]
+    pub only_tag: Vec<String>,
+
+    /// Suppress tracing log output (errors only)
+    #[arg(long, short = 'q')]
+    pub quiet: bool,
+
     /// Skip GitHub (gh) lookups
     #[arg(long)]
     pub no_github: bool,

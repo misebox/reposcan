@@ -2,10 +2,12 @@ mod cli;
 mod collect;
 mod discover;
 mod docker;
+mod fields;
 mod git;
 mod github;
 mod loc;
 mod output;
+mod query;
 mod tags;
 mod tools;
 mod types;
@@ -23,16 +25,20 @@ use crate::discover::DiscoverOptions;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let mut args = Args::parse();
+
+    let default_filter = if args.quiet {
+        "error,tokei=off"
+    } else {
+        "info,tokei=error"
+    };
     let _ = tracing_log::LogTracer::init();
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("info,tokei=error")),
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(default_filter)),
         )
         .with_writer(std::io::stderr)
         .try_init();
-
-    let mut args = Args::parse();
 
     if args.diagnose {
         tools::print_diagnosis();
@@ -58,20 +64,23 @@ async fn main() -> Result<()> {
     let repos = discover::discover(&root, &opts)?;
     tracing::info!(count = repos.len(), "found repositories");
 
+    let fields = fields::resolve(&args.fields)?;
+
     let args_arc = Arc::new(args.clone());
     let entries = collect::collect_all(&root, repos, args_arc).await;
+    let entries = query::apply(&args, entries)?;
 
     match &args.output {
         Some(path) => {
             let mut f = std::fs::File::create(path)
                 .with_context(|| format!("create {}", path.display()))?;
-            output::render(args.format, &entries, &mut f)?;
+            output::render(args.format, &entries, &fields, &mut f)?;
             tracing::info!(path = %path.display(), n = entries.len(), format = ?args.format, "wrote output");
         }
         None => {
             let stdout = std::io::stdout();
             let mut handle = stdout.lock();
-            output::render(args.format, &entries, &mut handle)?;
+            output::render(args.format, &entries, &fields, &mut handle)?;
         }
     }
 

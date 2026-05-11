@@ -176,6 +176,8 @@ fn write_html<W: Write>(
 ) -> Result<()> {
     if styled {
         write!(w, "{}", HTML_STYLED_HEAD)?;
+    } else {
+        write!(w, "{}", HTML_NEUTRAL_STYLE)?;
     }
     writeln!(w, "<table>")?;
     writeln!(w, "<thead><tr>")?;
@@ -198,6 +200,13 @@ fn write_html<W: Write>(
     }
     Ok(())
 }
+
+const HTML_NEUTRAL_STYLE: &str = r#"<style>
+table { border-collapse: collapse; font-family: sans-serif; font-size: 0.85rem; }
+th, td { padding: 0.4rem 0.6rem; border: 1px solid #ccc; text-align: left; }
+th { background: #f5f5f5; font-weight: 600; }
+</style>
+"#;
 
 const HTML_STYLED_HEAD: &str = r#"<!DOCTYPE html>
 <html lang="en">

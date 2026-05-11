@@ -1,6 +1,6 @@
 [package]
 name = "reposnap"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 description = "Catalog git repositories under a directory and emit per-repo state, tech stack, and metadata."
 license = "MIT OR Apache-2.0"

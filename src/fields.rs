@@ -60,7 +60,18 @@ pub const ALL_FIELDS: &[&str] = &[
     "tech_tags",
 ];
 
+pub const DEFAULT_FIELDS: &[&str] = &[
+    "name",
+    "current_branch",
+    "last_commit_date",
+    "has_uncommitted",
+    "unpushed_commits",
+    "scale",
+    "tech_tags",
+];
+
 const GROUPS: &[(&str, &[&str])] = &[
+    ("default", DEFAULT_FIELDS),
     ("minimal", &["path", "name", "current_branch", "tech_tags"]),
     (
         "activity",
@@ -88,7 +99,7 @@ const GROUPS: &[(&str, &[&str])] = &[
 /// Empty input → all fields. `all` → all fields. `@<group>` → group expansion.
 pub fn resolve(spec: &[String]) -> Result<Vec<&'static str>> {
     if spec.is_empty() {
-        return Ok(ALL_FIELDS.to_vec());
+        return Ok(DEFAULT_FIELDS.to_vec());
     }
     let mut out: Vec<&'static str> = Vec::new();
     let mut seen = std::collections::HashSet::new();
@@ -148,9 +159,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn empty_returns_all() {
+    fn empty_returns_default() {
         let r = resolve(&[]).unwrap();
-        assert_eq!(r, ALL_FIELDS);
+        assert_eq!(r, DEFAULT_FIELDS);
     }
 
     #[test]

@@ -20,6 +20,8 @@ pub fn render<W: Write>(
         Format::Tsv => write_delimited(entries, fields, b'\t', w),
         Format::Markdown => write_markdown(entries, fields, w),
         Format::Ascii => write_ascii(entries, fields, w),
+        Format::Html => write_html(entries, fields, false, w),
+        Format::HtmlStyled => write_html(entries, fields, true, w),
     }
 }
 
@@ -156,6 +158,70 @@ fn escape_md_cell(s: String) -> String {
         .replace('|', "\\|")
         .replace('\n', " ")
 }
+
+// --- HTML ---
+
+fn escape_html(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+}
+
+fn write_html<W: Write>(
+    entries: &[RepoEntry],
+    fields: &[&str],
+    styled: bool,
+    w: &mut W,
+) -> Result<()> {
+    if styled {
+        write!(w, "{}", HTML_STYLED_HEAD)?;
+    }
+    writeln!(w, "<table>")?;
+    writeln!(w, "<thead><tr>")?;
+    for f in fields {
+        writeln!(w, "  <th>{}</th>", escape_html(f))?;
+    }
+    writeln!(w, "</tr></thead>")?;
+    writeln!(w, "<tbody>")?;
+    for e in entries {
+        writeln!(w, "<tr>")?;
+        for f in fields {
+            writeln!(w, "  <td>{}</td>", escape_html(&flat_value(e, f)))?;
+        }
+        writeln!(w, "</tr>")?;
+    }
+    writeln!(w, "</tbody>")?;
+    writeln!(w, "</table>")?;
+    if styled {
+        write!(w, "{}", HTML_STYLED_TAIL)?;
+    }
+    Ok(())
+}
+
+const HTML_STYLED_HEAD: &str = r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reposnap</title>
+<style>
+:root { --bg: #0d1117; --fg: #e6edf3; --border: #30363d; --head-bg: #161b22; --row-hover: #1c2128; --accent: #58a6ff; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: var(--bg); color: var(--fg); padding: 2rem; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+th, td { padding: 0.5rem 0.75rem; border: 1px solid var(--border); text-align: left; white-space: nowrap; }
+th { background: var(--head-bg); color: var(--accent); font-weight: 600; position: sticky; top: 0; }
+tr:hover td { background: var(--row-hover); }
+@media (prefers-color-scheme: light) {
+  :root { --bg: #fff; --fg: #1f2328; --border: #d1d9e0; --head-bg: #f6f8fa; --row-hover: #f0f3f6; --accent: #0969da; }
+}
+</style>
+</head>
+<body>
+"#;
+
+const HTML_STYLED_TAIL: &str = "</body>\n</html>\n";
 
 // --- ASCII (humanized, condensed) ---
 //

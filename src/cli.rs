@@ -3,13 +3,15 @@ use std::path::PathBuf;
 use clap::{Parser, ValueEnum};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
-#[value(rename_all = "lowercase")]
+#[value(rename_all = "kebab-case")]
 pub enum Format {
     Ascii,
     Json,
     Csv,
     Tsv,
     Markdown,
+    Html,
+    HtmlStyled,
 }
 
 #[derive(Parser, Debug, Clone)]
@@ -33,7 +35,7 @@ pub struct Args {
 
     /// Comma-separated fields to include.
     ///
-    /// Use 'all' for the default set.
+    /// Use 'all' for every field.
     /// Group aliases: @minimal, @activity, @github
     /// Example: --fields path,name,@activity
     #[arg(

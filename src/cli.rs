@@ -35,8 +35,21 @@ pub struct Args {
 
     /// Comma-separated fields to include.
     ///
-    /// Use 'all' for every field.
-    /// Group aliases: @minimal, @activity, @github
+    /// Use 'all' for every field (default shows 7 key fields).
+    /// Groups: @default, @minimal, @activity, @github
+    ///
+    /// Fields (canonical / alias):
+    ///   path  name  current_branch (branch)
+    ///   github_repo (gh)  is_private (priv)  github_description (desc)
+    ///   last_commit_hash  last_commit_date  last_commit_message
+    ///   has_uncommitted (dirty)  uncommitted_files  uncommitted_insertions  uncommitted_deletions
+    ///   unpushed_commits (ahead)  unmerged_branches (unmerged)
+    ///   open_issues  open_prs
+    ///   loc  scale  dir_size_bytes (size)
+    ///   has_readme (readme)  has_dockerfile (dockerfile)
+    ///   compose_file (compose)  compose_ports (ports)  compose_running (running)
+    ///   tech_tags (tags)
+    ///
     /// Example: --fields path,name,@activity
     #[arg(
         long,
@@ -54,33 +67,12 @@ pub struct Args {
     /// Filter expression 'field<op>value' (repeatable, ANDed).
     ///
     /// Operators: =, !=, >, <, >=, <=, ~  (~ = substring / array contains)
-    ///
-    /// Fields (canonical / alias):
-    ///   path  name  current_branch (branch)
-    ///   github_repo (gh)  is_private (priv)  github_description (desc)
-    ///   last_commit_hash  last_commit_date  last_commit_message
-    ///   has_uncommitted (dirty)  uncommitted_files  uncommitted_insertions  uncommitted_deletions
-    ///   unpushed_commits (ahead)  unmerged_branches (unmerged)
-    ///   open_issues  open_prs
-    ///   loc  scale  dir_size_bytes (size)
-    ///   has_readme (readme)  has_dockerfile (dockerfile)
-    ///   compose_file (compose)  compose_ports (ports)  compose_running (running)
-    ///   tech_tags (tags)
-    ///
-    /// Type semantics:
-    ///   string: =, !=, ~  (date strings are ISO so lexical = chronological)
-    ///   bool:   =, !=     (true|false|yes|no|1|0, case-insensitive)
-    ///   number: =, !=, >, <, >=, <=
-    ///   scale:  =, !=, >, <, >=, <=  (small < medium < large < huge)
-    ///   array:  ~          (contains)
-    ///
-    /// Null fields never match any condition.
-    /// Values may contain commas (use --filter twice for AND).
+    /// Field names: same as --fields (see --help for the full list).
+    /// Null fields never match. Use --filter twice for AND.
     ///
     /// Examples:
     ///   --filter ahead>0
     ///   --filter scale>=large
-    ///   --filter "last_commit_date<2025-01-01"
     ///   --filter tags~rust --filter tags~wasm
     #[arg(
         long,
